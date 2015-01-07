@@ -62,6 +62,7 @@
 #include <AP_Airspeed.h>
 #include <RC_Channel.h>
 #include <AP_BoardConfig.h>
+#include <AP_OpticalFlow.h>
 
 // Configuration
 #include "config.h"
@@ -140,6 +141,8 @@ static AP_Compass_VRBRAIN compass;
 static AP_Compass_HMC5843 compass;
 #elif CONFIG_COMPASS == HAL_COMPASS_HIL
 static AP_Compass_HIL compass;
+#elif CONFIG_COMPASS == HAL_COMPASS_AK8963
+static AP_Compass_AK8963_MPU9250 compass;
 #else
  #error Unrecognized CONFIG_COMPASS setting
 #endif
@@ -263,6 +266,7 @@ void setup()
 
     // antenna tracker does not use pre-arm checks or battery failsafe
     AP_Notify::flags.pre_arm_check = true;
+    AP_Notify::flags.pre_arm_gps_check = true;
     AP_Notify::flags.failsafe_battery = false;
 
     notify.init(false);

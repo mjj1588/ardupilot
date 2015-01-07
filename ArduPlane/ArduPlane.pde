@@ -217,6 +217,8 @@ static AP_Compass_VRBRAIN compass;
 static AP_Compass_HMC5843 compass;
 #elif CONFIG_COMPASS == HAL_COMPASS_HIL
 static AP_Compass_HIL compass;
+#elif CONFIG_COMPASS == HAL_COMPASS_AK8963
+static AP_Compass_AK8963_MPU9250 compass;
 #else
  #error Unrecognized CONFIG_COMPASS setting
 #endif
@@ -316,12 +318,10 @@ static AP_Camera camera(&relay);
 ////////////////////////////////////////////////////////////////////////////////
 // Optical flow sensor
 ////////////////////////////////////////////////////////////////////////////////
-#if  CONFIG_HAL_BOARD == HAL_BOARD_PX4
-static AP_OpticalFlow_PX4 optflow(ahrs);
-#endif
+static OpticalFlow optflow;
 
 //Rally Ponints
-AP_Rally rally(ahrs);
+static AP_Rally rally(ahrs);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Global variables
@@ -565,6 +565,12 @@ static struct {
 
     // time when we first pass min GPS speed on takeoff
     uint32_t takeoff_speed_time_ms;
+
+    // distance to next waypoint
+    float wp_distance;
+
+    // proportion to next waypoint
+    float wp_proportion;
 } auto_state = {
     takeoff_complete : true,
     land_complete : false,
@@ -635,15 +641,6 @@ AP_Terrain terrain(ahrs, mission, rally);
 #if OBC_FAILSAFE == ENABLED
 APM_OBC obc(mission, barometer, gps, rcmap);
 #endif
-
-////////////////////////////////////////////////////////////////////////////////
-// Waypoint distances
-////////////////////////////////////////////////////////////////////////////////
-// Distance between plane and next waypoint.  Meters
-static uint32_t wp_distance;
-
-// Distance between previous and next waypoint.  Meters
-static uint32_t wp_totalDistance;
 
 /*
   meta data to support counting the number of circles in a loiter
@@ -1059,6 +1056,7 @@ static void one_second_loop()
 
     // update notify flags
     AP_Notify::flags.pre_arm_check = arming.pre_arm_checks(false);
+    AP_Notify::flags.pre_arm_gps_check = true;
     AP_Notify::flags.armed = arming.is_armed() || arming.arming_required() == AP_Arming::NO;
 
 #if AP_TERRAIN_AVAILABLE

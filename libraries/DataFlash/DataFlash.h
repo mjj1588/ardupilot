@@ -69,7 +69,7 @@ public:
     void Log_Write_Power(void);
     void Log_Write_AHRS2(AP_AHRS &ahrs);
 #if AP_AHRS_NAVEKF_AVAILABLE
-    void Log_Write_EKF(AP_AHRS_NavEKF &ahrs);
+    void Log_Write_EKF(AP_AHRS_NavEKF &ahrs, bool optFlowEnabled);
 #endif
     void Log_Write_MavCmd(uint16_t cmd_total, const mavlink_mission_item_t& mav_cmd);
     void Log_Write_Radio(const mavlink_radio_t &packet);
@@ -217,6 +217,7 @@ struct PACKED log_IMU {
     uint32_t timestamp;
     float gyro_x, gyro_y, gyro_z;
     float accel_x, accel_y, accel_z;
+    uint32_t gyro_error, accel_error;
 };
 
 struct PACKED log_RCIN {
@@ -344,8 +345,8 @@ struct PACKED log_EKF4 {
     int8_t  offsetNorth;
     int8_t  offsetEast;
     uint8_t faults;
-    uint8_t staticmode;
     uint8_t timeouts;
+    uint8_t solution;
 };
 
 struct PACKED log_EKF5 {
@@ -353,12 +354,13 @@ struct PACKED log_EKF5 {
     uint32_t time_ms;
     int16_t FIX;
     int16_t FIY;
-    int16_t AFIX;
-    int16_t AFIY;
-    int16_t gndPos;
+    uint8_t normInnovFX;
+    uint8_t normInnovFY;
+    uint16_t estHAGL;
     uint8_t scaler;
     int16_t RI;
-    uint16_t range;
+    uint16_t meaRng;
+    uint16_t errHAGL;
 };
 
 struct PACKED log_Cmd {
@@ -467,7 +469,7 @@ struct PACKED log_Esc {
     { LOG_GPS_MSG, sizeof(log_GPS), \
       "GPS",  "BIHBcLLeeEefI", "Status,TimeMS,Week,NSats,HDop,Lat,Lng,RelAlt,Alt,Spd,GCrs,VZ,T" }, \
     { LOG_IMU_MSG, sizeof(log_IMU), \
-      "IMU",  "Iffffff",     "TimeMS,GyrX,GyrY,GyrZ,AccX,AccY,AccZ" }, \
+      "IMU",  "IffffffII",     "TimeMS,GyrX,GyrY,GyrZ,AccX,AccY,AccZ,ErrG,ErrA" }, \
     { LOG_MESSAGE_MSG, sizeof(log_Message), \
       "MSG",  "Z",     "Message"}, \
     { LOG_RCIN_MSG, sizeof(log_RCIN), \
@@ -490,9 +492,9 @@ struct PACKED log_Esc {
     { LOG_GPS2_MSG, sizeof(log_GPS2), \
       "GPS2",  "BIHBcLLeEefIBI", "Status,TimeMS,Week,NSats,HDop,Lat,Lng,Alt,Spd,GCrs,VZ,T,DSc,DAg" }, \
     { LOG_IMU2_MSG, sizeof(log_IMU), \
-      "IMU2",  "Iffffff",     "TimeMS,GyrX,GyrY,GyrZ,AccX,AccY,AccZ" }, \
+      "IMU2",  "IffffffII",     "TimeMS,GyrX,GyrY,GyrZ,AccX,AccY,AccZ,ErrG,ErrA" }, \
     { LOG_IMU3_MSG, sizeof(log_IMU), \
-      "IMU3",  "Iffffff",     "TimeMS,GyrX,GyrY,GyrZ,AccX,AccY,AccZ" }, \
+      "IMU3",  "IffffffII",     "TimeMS,GyrX,GyrY,GyrZ,AccX,AccY,AccZ,ErrG,ErrA" }, \
     { LOG_AHR2_MSG, sizeof(log_AHRS), \
       "AHR2","IccCfLL","TimeMS,Roll,Pitch,Yaw,Alt,Lat,Lng" }, \
     { LOG_SIMSTATE_MSG, sizeof(log_AHRS), \
@@ -504,7 +506,7 @@ struct PACKED log_Esc {
     { LOG_EKF3_MSG, sizeof(log_EKF3), \
       "EKF3","Icccccchhhc","TimeMS,IVN,IVE,IVD,IPN,IPE,IPD,IMX,IMY,IMZ,IVT" }, \
     { LOG_EKF4_MSG, sizeof(log_EKF4), \
-      "EKF4","IcccccccbbBBB","TimeMS,SV,SP,SH,SMX,SMY,SMZ,SVT,OFN,EFE,FS,StaticMode,TS" }, \
+      "EKF4","IcccccccbbBBB","TimeMS,SV,SP,SH,SMX,SMY,SMZ,SVT,OFN,EFE,FS,TS,SS" }, \
     { LOG_TERRAIN_MSG, sizeof(log_TERRAIN), \
       "TERR","IBLLHffHH","TimeMS,Status,Lat,Lng,Spacing,TerrH,CHeight,Pending,Loaded" }, \
     { LOG_UBX1_MSG, sizeof(log_Ubx1), \
@@ -530,7 +532,7 @@ struct PACKED log_Esc {
     { LOG_ESC8_MSG, sizeof(log_Esc), \
       "ESC8",  "Icccc", "TimeMS,RPM,Volt,Curr,Temp" }, \
     { LOG_EKF5_MSG, sizeof(log_EKF5), \
-      "EKF5","IhhhhcBcC","TimeMS,FIX,FIY,AFIX,AFIY,gndPos,fScaler,RI,rng" }
+      "EKF5","IhhBBCBcCC","TimeMS,FIX,FIY,SFX,SFY,estHAGL,fScaler,RI,meaRng,errHAGL" }
 
 #if HAL_CPU_CLASS >= HAL_CPU_CLASS_75
 #define LOG_COMMON_STRUCTURES LOG_BASE_STRUCTURES, LOG_EXTRA_STRUCTURES
