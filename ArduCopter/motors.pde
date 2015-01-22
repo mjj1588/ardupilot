@@ -189,7 +189,7 @@ static bool init_arm_motors()
     Log_Write_Event(DATA_ARMED);
 
     // log flight mode in case it was changed while vehicle was disarmed
-    Log_Write_Mode(control_mode);
+    DataFlash.Log_Write_Mode(control_mode);
 
     // reenable failsafe
     failsafe_enable();
@@ -232,7 +232,7 @@ static void pre_arm_checks(bool display_failure)
     // check Baro
     if ((g.arming_check == ARMING_CHECK_ALL) || (g.arming_check & ARMING_CHECK_BARO)) {
         // barometer health check
-        if(!barometer.healthy()) {
+        if(!barometer.all_healthy()) {
             if (display_failure) {
                 gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Barometer not healthy"));
             }
@@ -508,7 +508,7 @@ static bool pre_arm_gps_checks(bool display_failure)
     }
 
     // ensure GPS is ok
-    if (!GPS_ok()) {
+    if (!position_ok()) {
         if (display_failure) {
             gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Need 3D Fix"));
         }

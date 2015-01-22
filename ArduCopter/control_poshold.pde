@@ -97,7 +97,7 @@ static struct {
 static bool poshold_init(bool ignore_checks)
 {
     // fail to initialise PosHold mode if no GPS lock
-    if (!GPS_ok() && !ignore_checks) {
+    if (!position_ok() && !ignore_checks) {
         return false;
     }
     
@@ -154,7 +154,7 @@ static void poshold_run()
     const Vector3f& vel = inertial_nav.get_velocity();
 
     // if not auto armed set throttle to zero and exit immediately
-    if(!ap.auto_armed || !inertial_nav.position_ok()) {
+    if(!ap.auto_armed) {
         wp_nav.init_loiter_target();
         attitude_control.relax_bf_rate_controller();
         attitude_control.set_yaw_target_to_current_heading();

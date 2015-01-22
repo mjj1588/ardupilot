@@ -229,7 +229,7 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan)
         control_sensors_health &= ~MAV_SYS_STATUS_AHRS;
     }
 
-    if (barometer.healthy()) {
+    if (barometer.all_healthy()) {
         control_sensors_health |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
     }
     if (g.compass_enabled && compass.healthy(0) && ahrs.use_compass()) {
@@ -1045,7 +1045,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             } else if (packet.param4 == 1) {
                 trim_radio();
             } 
-#if !defined( __AVR_ATmega1280__ )
             else if (packet.param5 == 1) {
                 float trim_roll, trim_pitch;
                 AP_InertialSensor_UserInteract_MAVLink interact(chan);
@@ -1059,7 +1058,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                     ahrs.set_trim(Vector3f(trim_roll, trim_pitch, 0));
                 }
             }
-#endif
             else {
                     send_text_P(SEVERITY_LOW, PSTR("Unsupported preflight calibration"));
             }
@@ -1084,7 +1082,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 // run pre_arm_checks and arm_checks and display failures
                 if (arming.arm(AP_Arming::MAVLINK)) {
                     //only log if arming was successful
-                    channel_throttle->enable_out();                        
+                    channel_throttle->enable_out();
                     Log_Arm_Disarm();
                     result = MAV_RESULT_ACCEPTED;
                 } else {

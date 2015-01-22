@@ -483,6 +483,11 @@ bool AP_Compass_AK8963::read()
         return false;
     }
 
+    if (_accum_count == 0) {
+        /* We're not ready to publish*/
+        return true;
+    }
+
     /* Update */
     _field[0].x = _mag_x_accum * magnetometer_ASA[0] / _accum_count;
     _field[0].y = _mag_y_accum * magnetometer_ASA[1] / _accum_count;
@@ -498,12 +503,12 @@ bool AP_Compass_AK8963::read()
     // add user selectable orientation
     _field[0].rotate((enum Rotation)_orientation[0].get());
 
-    if (!_external) {
+    if (!_external[0]) {
         // and add in AHRS_ORIENTATION setting if not an external compass
         _field[0].rotate(_board_orientation);
     }
 
-    _field[0] += _offset[0].get();
+    apply_corrections(_field[0],0);
 
 #if 0
     float x = _field[0].x;

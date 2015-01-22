@@ -17,7 +17,7 @@ static void run_nav_updates(void)
 
 // calc_position - get lat and lon positions from inertial nav library
 static void calc_position(){
-    if( inertial_nav.position_ok() ) {
+    if (ap.home_is_set) {
         // pull position from interial nav library
         current_loc.lng = inertial_nav.get_longitude();
         current_loc.lat = inertial_nav.get_latitude();
@@ -64,7 +64,7 @@ static void calc_home_distance_and_bearing()
     Vector3f curr = inertial_nav.get_position();
 
     // calculate home distance and bearing
-    if (GPS_ok()) {
+    if (position_ok()) {
         home_distance = pythagorous2(curr.x, curr.y);
         home_bearing = pv_get_bearing_cd(curr,Vector3f(0,0,0));
 

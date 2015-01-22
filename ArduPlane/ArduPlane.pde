@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduPlane V3.2.1alpha"
+#define THISFIRMWARE "ArduPlane V3.2.1alpha2"
 /*
    Lead developer: Andrew Tridgell
  
@@ -154,7 +154,6 @@ static void print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode);
 ////////////////////////////////////////////////////////////////////////////////
 // DataFlash
 ////////////////////////////////////////////////////////////////////////////////
-#if LOGGING_ENABLED == ENABLED
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
 static DataFlash_APM1 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
@@ -164,7 +163,6 @@ static DataFlash_File DataFlash(HAL_BOARD_LOG_DIRECTORY);
 #else
 // no dataflash driver
 DataFlash_Empty DataFlash;
-#endif
 #endif
 
 // has a log download started?
@@ -193,21 +191,7 @@ static AP_GPS gps;
 // flight modes convenience array
 static AP_Int8          *flight_modes = &g.flight_mode1;
 
-#if CONFIG_BARO == HAL_BARO_BMP085
-static AP_Baro_BMP085 barometer;
-#elif CONFIG_BARO == HAL_BARO_PX4
-static AP_Baro_PX4 barometer;
-#elif CONFIG_BARO == HAL_BARO_VRBRAIN
-static AP_Baro_VRBRAIN barometer;
-#elif CONFIG_BARO == HAL_BARO_HIL
-static AP_Baro_HIL barometer;
-#elif CONFIG_BARO == HAL_BARO_MS5611
-static AP_Baro_MS5611 barometer(&AP_Baro_MS5611::i2c);
-#elif CONFIG_BARO == HAL_BARO_MS5611_SPI
-static AP_Baro_MS5611 barometer(&AP_Baro_MS5611::spi);
-#else
- #error Unrecognized CONFIG_BARO setting
-#endif
+static AP_Baro barometer;
 
 #if CONFIG_COMPASS == HAL_COMPASS_PX4
 static AP_Compass_PX4 compass;
@@ -952,7 +936,7 @@ static void update_compass(void)
         ahrs.set_compass(&compass);
         compass.learn_offsets();
         if (should_log(MASK_LOG_COMPASS)) {
-            Log_Write_Compass();
+            DataFlash.Log_Write_Compass(compass);
         }
     } else {
         ahrs.set_compass(NULL);
@@ -1231,7 +1215,7 @@ static void handle_auto_mode(void)
             // allowed for level flight
             nav_roll_cd = constrain_int32(nav_roll_cd, -g.level_roll_limit*100UL, g.level_roll_limit*100UL);
         } else {
-            if (!airspeed.use()) {
+            if (!ahrs.airspeed_sensor_enabled()) {
                 // when not under airspeed control, don't allow
                 // down pitch in landing
                 nav_pitch_cd = constrain_int32(nav_pitch_cd, 0, nav_pitch_cd);
@@ -1511,7 +1495,7 @@ static void set_flight_stage(AP_SpdHgtControl::FlightStage fs)
 
 static void update_alt()
 {
-    barometer.read();
+    barometer.update();
     if (should_log(MASK_LOG_IMU)) {
         Log_Write_Baro();
     }

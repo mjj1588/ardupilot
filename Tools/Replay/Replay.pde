@@ -67,7 +67,7 @@ const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 static Parameters g;
 
 static AP_InertialSensor ins;
-static AP_Baro_HIL barometer;
+static AP_Baro barometer;
 static AP_GPS gps;
 static AP_Compass_HIL compass;
 static AP_AHRS_NavEKF ahrs(ins, barometer, gps);
@@ -209,11 +209,13 @@ void setup()
 
     if (arm_time_ms != 0) {
         ahrs.set_armed(false);
+    } else {
+        ahrs.set_armed(true);
     }
 
     barometer.init();
     barometer.setHIL(0);
-    barometer.read();
+    barometer.update();
     compass.init();
     inertial_nav.init();
     ins.set_hil_mode();
@@ -325,7 +327,7 @@ static void read_sensors(uint8_t type)
     } else if (type == LOG_PLANE_AIRSPEED_MSG && LogReader.vehicle == LogReader::VEHICLE_PLANE) {
         ahrs.set_airspeed(&airspeed);
     } else if (type == LOG_BARO_MSG) {
-        barometer.read();
+        barometer.update();
         if (!done_baro_init) {
             done_baro_init = true;
             ::printf("Barometer initialised\n");
@@ -353,7 +355,8 @@ void loop()
         }
         read_sensors(type);
 
-        if ((type == LOG_PLANE_ATTITUDE_MSG && LogReader.vehicle == LogReader::VEHICLE_PLANE) ||
+        if ((type == LOG_ATTITUDE_MSG) ||
+            (type == LOG_PLANE_ATTITUDE_MSG && LogReader.vehicle == LogReader::VEHICLE_PLANE) ||
             (type == LOG_COPTER_ATTITUDE_MSG && LogReader.vehicle == LogReader::VEHICLE_COPTER) ||
             (type == LOG_ROVER_ATTITUDE_MSG && LogReader.vehicle == LogReader::VEHICLE_ROVER)) {
 

@@ -130,7 +130,7 @@ static void init_ardupilot()
 #if MAVLINK_COMM_NUM_BUFFERS > 2
     if (g.serial2_protocol == SERIAL2_FRSKY_DPORT || 
         g.serial2_protocol == SERIAL2_FRSKY_SPORT) {
-        frsky_telemetry.init(hal.uartD, g.serial2_protocol);
+        frsky_telemetry.init(hal.uartD, (AP_Frsky_Telem::FrSkyProtocol)g.serial2_protocol.get());
     } else {
         gcs[2].setup_uart(hal.uartD, map_baudrate(g.serial2_baud), 128, SERIAL2_BUFSIZE);
     }
@@ -404,7 +404,7 @@ static void set_mode(enum FlightMode mode)
     throttle_suppressed = auto_throttle_mode;
 
     if (should_log(MASK_LOG_MODE))
-        Log_Write_Mode(control_mode);
+        DataFlash.Log_Write_Mode(control_mode);
 
     // reset attitude integrators on mode change
     rollController.reset_I();
@@ -513,6 +513,7 @@ static void startup_INS_ground(bool do_accel_init)
     AP_InertialSensor::Start_style style;
     if (g.skip_gyro_cal && !do_accel_init) {
         style = AP_InertialSensor::WARM_START;
+        arming.set_skip_gyro_cal(true);
     } else {
         style = AP_InertialSensor::COLD_START;
     }
@@ -672,7 +673,9 @@ static bool should_log(uint32_t mask)
         // we have to set in_mavlink_delay to prevent logging while
         // writing headers
         in_mavlink_delay = true;
+        #if LOGGING_ENABLED == ENABLED
         start_logging();
+        #endif
         in_mavlink_delay = false;
     }
     return ret;
@@ -684,8 +687,7 @@ static bool should_log(uint32_t mask)
 static void telemetry_send(void)
 {
 #if FRSKY_TELEM_ENABLED == ENABLED
-    frsky_telemetry.send_frames((uint8_t)control_mode, 
-                                (AP_Frsky_Telem::FrSkyProtocol)g.serial2_protocol.get());
+    frsky_telemetry.send_frames((uint8_t)control_mode);
 #endif
 }
 
